@@ -1,0 +1,4 @@
+scenario,crowded_bus,crowded_pct,recommended_bus,recommended_pct,wait_min,improvement_pct,feasible,notes
+CBT->TPG (demo),101,94,102,42,6,52,YES,"Less crowded, reasonable wait - recommended"
+CBT->TPG,106,88,102,42,7,46,YES,Also feasible alternative
+CBT->TPG,101,94,103,30,9,64,YES,Very low crowd but different route/walk may differ

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdSense | Passenger Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="brand">
+                <div class="brand-mark">CS</div>
+                <div class="brand-text">
+                    <div class="brand-name">CrowdSense</div>
+                    <div class="brand-sub">Passenger Dashboard</div>
+                </div>
+            </div>
+            <nav class="nav">
+                <a class="nav-link" href="index.html">Home</a>
+                <a class="nav-link active" href="dashboard.html">Passenger Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="section">
+            <div class="section-header">
+                <div>
+                    <h1>Passenger Dashboard</h1>
+                    <p>Search for your journey, compare alternatives, and view rewards.</p>
+                </div>
+                <div class="status-pill" id="backend-status">Checking API...</div>
+            </div>
+
+            <!-- Search form -->
+            <div class="card">
+                <form id="search-form" class="form-grid">
+                    <label class="field">
+                        <span>Source <span class="required">*</span></span>
+                        <input id="source" list="stop-list" placeholder="Central Bus Terminal" required>
+                    </label>
+                    <label class="field">
+                        <span>Destination <span class="required">*</span></span>
+                        <input id="destination" list="stop-list" placeholder="Tech Park Gate" required>
+                    </label>
+                    <label class="field">
+                        <span>Passenger</span>
+                        <select id="passenger-select">
+                            <option value="1">Ananya Sharma (ananya.sharma@example.com)</option>
+                            <option value="2">Rahul Verma</option>
+                            <option value="3">Priya Nair</option>
+                        </select>
+                        <small class="muted">Used to load preferences and rewards.</small>
+                    </label>
+                    <div class="field-actions">
+                        <button class="btn btn-primary" type="submit">Search &amp; Recommend</button>
+                        <button class="btn btn-ghost" type="button" id="btn-clear">Clear</button>
+                    </div>
+                </form>
+                <datalist id="stop-list"></datalist>
+
+                <div class="pref-toggle">
+                    <details id="pref-details">
+                        <summary>Passenger preferences (optional override)</summary>
+                        <div class="form-grid pref-grid">
+                            <label class="field small">
+                                <span>Prefer low crowd (0-9)</span>
+                                <input id="pref-low-crowd" type="number" min="0" max="9" placeholder="5">
+                            </label>
+                            <label class="field small">
+                                <span>Prefer short wait (0-9)</span>
+                                <input id="pref-short-wait" type="number" min="0" max="9" placeholder="5">
+                            </label>
+                            <label class="field small">
+                                <span>Prefer short travel (0-9)</span>
+                                <input id="pref-short-travel" type="number" min="0" max="9" placeholder="5">
+                            </label>
+                            <label class="field small">
+                                <span>Prefer short walk (0-9)</span>
+                                <input id="pref-short-walk" type="number" min="0" max="9" placeholder="5">
+                            </label>
+                            <label class="field small">
+                                <span>Max walk distance (km)</span>
+                                <input id="pref-max-walk" type="number" step="0.1" min="0" max="5" placeholder="1.5">
+                            </label>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Loading / error -->
+            <div id="loading" class="loading hidden">Loading recommendations...</div>
+            <div id="error" class="alert alert-error hidden"></div>
+            <div id="info" class="alert alert-info hidden"></div>
+        </section>
+
+        <!-- Results -->
+        <section id="results" class="section hidden">
+            <div class="section-header">
+                <h2>Journey Results</h2>
+                <p id="route-summary"></p>
+            </div>
+
+            <!-- Recommended -->
+            <div class="card recommended-card">
+                <div class="card-header">
+                    <div>
+                        <h3>Recommended Alternative</h3>
+                        <p class="muted">Top-ranked option based on scoring formula</p>
+                    </div>
+                    <div class="badge badge-success">Recommended</div>
+                </div>
+                <div id="recommended"></div>
+            </div>
+
+            <!-- Scoring info -->
+            <details class="card">
+                <summary>Scoring breakdown &amp; explanation</summary>
+                <div id="explanation" class="explanation"></div>
+                <div id="scoring-table" class="table-wrap"></div>
+                <p id="demo-note" class="muted small"></p>
+            </details>
+
+            <!-- All alternatives -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>All Available Buses</h3>
+                        <p class="muted">Ranked list (higher score = better)</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="table" id="all-buses-table">
+                        <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Bus</th>
+                            <th>Route</th>
+                            <th>Mode</th>
+                            <th>Crowd</th>
+                            <th>Occupancy</th>
+                            <th>Wait</th>
+                            <th>Travel</th>
+                            <th>Walk</th>
+                            <th>Trip Dist.</th>
+                            <th>Score</th>
+                            <th>Board Stop</th>
+                            <th>Reasons</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Confirmation -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Confirm Your Journey (Simulated)</h3>
+                    <p class="muted">Confirming awards virtual rewards when you choose a less-crowded alternative. Prevents duplicate rewards.</p>
+                </div>
+                <form id="confirm-form" class="form-grid">
+                    <label class="field">
+                        <span>Selected Bus <span class="required">*</span></span>
+                        <select id="selected-bus" required></select>
+                    </label>
+                    <label class="field">
+                        <span>Journey Key <span class="required">*</span></span>
+                        <input id="journey-key" placeholder="e.g. JRN-20261020-001" required>
+                    </label>
+                    <label class="field">
+                        <span>Board Stop</span>
+                        <select id="board-stop"></select>
+                        <small class="muted">Defaults to the stop used in recommendation.</small>
+                    </label>
+                    <div class="field-actions">
+                        <button class="btn btn-success" type="submit">Confirm Journey</button>
+                    </div>
+                </form>
+                <div id="confirm-result" class="alert hidden"></div>
+            </div>
+
+            <!-- Rewards -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Rewards</h3>
+                    <p class="muted">Balance and transaction history for the selected passenger.</p>
+                </div>
+                <div class="rewards-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Current Balance</div>
+                        <div class="stat-value" id="reward-balance">0</div>
+                        <div class="stat-sub">Virtual travel vouchers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Passenger</div>
+                        <div class="stat-value small" id="reward-passenger">-</div>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="table" id="reward-history-table">
+                        <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Journey Key</th>
+                            <th>Type</th>
+                            <th>Points</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Route diagram -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Route Visualization</h3>
+                    <p class="muted">Simple stop sequence for the recommended route.</p>
+                </div>
+                <div id="route-diagram" class="route-diagram"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <div class="brand-name">CrowdSense</div>
+                <p class="muted">Simulated data for demonstration only.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

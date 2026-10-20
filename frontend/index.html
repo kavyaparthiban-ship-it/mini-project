@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdSense | Intelligent Crowd Prediction &amp; Travel Recommendation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="brand">
+                <div class="brand-mark">CS</div>
+                <div class="brand-text">
+                    <div class="brand-name">CrowdSense</div>
+                    <div class="brand-sub">Intelligent Crowd Prediction &amp; Personalized Multi-Modal Travel Recommendation System</div>
+                </div>
+            </div>
+            <nav class="nav">
+                <a class="nav-link active" href="index.html">Home</a>
+                <a class="nav-link" href="dashboard.html">Passenger Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+                <div>
+                    <h1>Avoid overcrowded buses. Travel smarter with CrowdSense.</h1>
+                    <p>
+                        CrowdSense detects or predicts overcrowding, identifies feasible alternatives,
+                        ranks them using crowd level, waiting time, travel time, distance and your preferences,
+                        and rewards you for shifting to less-crowded journeys.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="dashboard.html">Get Recommendations</a>
+                        <a class="btn btn-ghost" href="#how-it-works">How it works</a>
+                    </div>
+                    <div class="hero-note">
+                        <strong>Demo:</strong> Bus 101 ~94% (Critical) &rarr; Recommended Bus 102 ~42% (Moderate), est. wait 6 min, reward 5 virtual vouchers.
+                    </div>
+                </div>
+                <div class="hero-card">
+                    <h2>Quick Search</h2>
+                    <p>Enter source and destination to see available buses and ranked recommendations.</p>
+                    <form id="quick-search-form" class="form">
+                        <label class="field">
+                            <span>Source</span>
+                            <input id="qs-source" list="stop-list" placeholder="e.g. Central Bus Terminal" required>
+                        </label>
+                        <label class="field">
+                            <span>Destination</span>
+                            <input id="qs-destination" list="stop-list" placeholder="e.g. Tech Park Gate" required>
+                        </label>
+                        <button class="btn btn-primary btn-block" type="submit">Search &amp; Get Recommendations</button>
+                    </form>
+                    <datalist id="stop-list"></datalist>
+                    <p class="muted small">API: <code>POST /api/recommendations</code> &middot; Simulated data only.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>How CrowdSense works</h2>
+                    <p>From detection to recommendation to demand redistribution.</p>
+                </div>
+                <div class="steps-grid">
+                    <article class="step-card">
+                        <div class="step-number">1</div>
+                        <h3>Detect &amp; Predict</h3>
+                        <p>Simulated occupancy records are classified into Low / Moderate / High / Critical using configurable thresholds.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">2</div>
+                        <h3>Identify Alternatives</h3>
+                        <p>Buses that serve the destination are found; the engine also considers realistically reachable alternatives.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">3</div>
+                        <h3>Rank &amp; Recommend</h3>
+                        <p>Scored by crowd, wait, travel, and walk (with passenger preferences). Missing/stale data is penalised.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">4</div>
+                        <h3>Incentivise &amp; Track</h3>
+                        <p>Confirm your journey to earn virtual rewards; balances and history are persisted to MySQL.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-alt">
+            <div class="container split">
+                <div>
+                    <h2>Five-member OOPS project structure</h2>
+                    <p>Each member has identifiable modules, files and responsibilities.</p>
+                    <ul class="checklist">
+                        <li>Member 1 – Frontend &amp; UI</li>
+                        <li>Member 2 – Java OOP &amp; Backend</li>
+                        <li>Member 3 – Database &amp; Transport Data</li>
+                        <li>Member 4 – Crowd Prediction &amp; Recommendation Evaluation</li>
+                        <li>Member 5 – Integration, Testing &amp; Documentation</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>Technology Stack</h3>
+                    <div class="pill-grid">
+                        <span class="pill">HTML5 / CSS3 / JS</span>
+                        <span class="pill">Java 17 / Spring Boot</span>
+                        <span class="pill">Spring Data JPA / Bean Validation</span>
+                        <span class="pill">MySQL</span>
+                        <span class="pill">JUnit 5</span>
+                        <span class="pill">Python / Pandas / scikit-learn (optional)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <div class="brand-name">CrowdSense</div>
+                <p class="muted">OOPS Mini Project &mdash; Intelligent Crowd Prediction and Personalized Multi-Modal Travel Recommendation System</p>
+            </div>
+            <div class="footer-links">
+                <a href="dashboard.html">Passenger Dashboard</a>
+                <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
