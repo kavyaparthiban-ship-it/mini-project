@@ -17,7 +17,7 @@ public interface BusRepository extends JpaRepository<BusEntity, Long> {
     @Query("SELECT DISTINCT b FROM BusEntity b JOIN FETCH b.route r LEFT JOIN FETCH b.currentStop " +
             "WHERE EXISTS (SELECT 1 FROM RouteStopEntity rsSrc WHERE rsSrc.route = r AND rsSrc.stop.stopId = :sourceId " +
             "AND EXISTS (SELECT 1 FROM RouteStopEntity rsDst WHERE rsDst.route = r AND rsDst.stop.stopId = :destinationId " +
-            "AND rsSrc.stopSequence < rsDst.stopSequence))")
+            "AND rsSrc.stopSequence <> rsDst.stopSequence))")
     List<BusEntity> findBusesServingDestination(@Param("sourceId") Long sourceId,
                                                 @Param("destinationId") Long destinationId);
 }

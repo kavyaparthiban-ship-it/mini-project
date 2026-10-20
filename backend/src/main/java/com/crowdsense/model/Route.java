@@ -63,8 +63,10 @@ public class Route {
     /**
      * Travel distance in kilometres between two stops on this route.
      *
-     * @return the distance, or {@code -1} when either stop is missing or the
-     *         destination does not come after the source (i.e. not a valid leg)
+     * Routes are modeled as serving both directions, so distance is independent
+     * of which stop comes first in the stored route order.
+     *
+     * @return the distance, or {@code -1} when either stop is missing
      */
     public double distanceBetween(Long sourceId, Long destinationId) {
         Stop source = findStop(sourceId);
@@ -72,25 +74,30 @@ public class Route {
         if (source == null || destination == null) {
             return -1;
         }
-        if (destination.getSequence() <= source.getSequence()) {
-            return -1;
-        }
-        return destination.getDistanceFromStartKm() - source.getDistanceFromStartKm();
+        return Math.abs(destination.getDistanceFromStartKm() - source.getDistanceFromStartKm());
     }
 
     /**
-     * Stops visited strictly after the given stop up to and including the destination.
-     * Used by the route-diagram view.
+     * Stops between the given stops, in the direction of travel, including both
+     * endpoints. Used by the route-diagram view.
      */
     public List<Stop> segment(Long fromStopId, Long toStopId) {
         Stop from = findStop(fromStopId);
         Stop to = findStop(toStopId);
-        if (from == null || to == null || to.getSequence() < from.getSequence()) {
+        if (from == null || to == null) {
             return List.of();
         }
-        return stops.stream()
-                .filter(s -> s.getSequence() >= from.getSequence() && s.getSequence() <= to.getSequence())
+        int firstSequence = Math.min(from.getSequence(), to.getSequence());
+        int lastSequence = Math.max(from.getSequence(), to.getSequence());
+        List<Stop> segment = stops.stream()
+                .filter(s -> s.getSequence() >= firstSequence && s.getSequence() <= lastSequence)
                 .toList();
+        if (from.getSequence() < to.getSequence()) {
+            return segment;
+        }
+        List<Stop> reverseSegment = new ArrayList<>(segment);
+        Collections.reverse(reverseSegment);
+        return reverseSegment;
     }
 
     @Override

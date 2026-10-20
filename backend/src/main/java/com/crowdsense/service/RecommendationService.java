@@ -111,7 +111,7 @@ public class RecommendationService {
 
         PassengerPreference preference = resolvePreference(passengerId, override);
 
-        // Find buses that can serve source -> destination
+        // Routes are modeled once; buses serve trips in either direction between their stops.
         List<BusEntity> feasible = busRepository.findBusesServingDestination(sourceStop.getStopId(), destStop.getStopId());
         if (feasible.isEmpty()) {
             // Fallback: scan all buses whose route contains both stops
@@ -143,7 +143,7 @@ public class RecommendationService {
             Route routeModel = buildRouteModel(routeEntity);
             double tripDist = routeModel.distanceBetween(sourceStop.getStopId(), destStop.getStopId());
             if (tripDist < 0) {
-                // This bus passes destination but not after source in a useful way - skip
+                // This bus does not serve both stops.
                 continue;
             }
             // Walk distance to board stop: if the bus is currently reported at a nearby stop,
@@ -234,7 +234,7 @@ public class RecommendationService {
                     dstSeq = rs.getStopSequence();
                 }
             }
-            if (srcSeq >= 0 && dstSeq >= 0 && srcSeq < dstSeq) {
+            if (srcSeq >= 0 && dstSeq >= 0 && srcSeq != dstSeq) {
                 result.add(bus);
             }
         }
