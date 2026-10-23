@@ -1,8 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const currentUser = window.CrowdSenseSession.requireUser();
+    if (!currentUser) return;
+
     const searchForm = document.getElementById('search-form');
     const sourceInput = document.getElementById('source');
     const destInput = document.getElementById('destination');
     const passengerSelect = document.getElementById('passenger-select');
+    if (passengerSelect) {
+        const option = document.createElement('option');
+        option.value = String(currentUser.passengerId);
+        option.textContent = `${currentUser.name} (${currentUser.email})`;
+        passengerSelect.appendChild(option);
+        passengerSelect.disabled = true;
+    }
+    const greeting = document.getElementById('user-greeting');
+    if (greeting) greeting.textContent = `Hi, ${currentUser.name}`;
+    const signOutButton = document.getElementById('sign-out');
+    if (signOutButton) {
+        signOutButton.addEventListener('click', () => window.CrowdSenseSession.signOut());
+    }
     const btnClear = document.getElementById('btn-clear');
 
     const prefLow = document.getElementById('pref-low-crowd');

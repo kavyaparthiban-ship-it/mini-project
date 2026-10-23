@@ -5,7 +5,7 @@ if (-not (Test-Path $mysql)) {
     throw "MySQL client not found at $mysql"
 }
 
-foreach ($file in @("database\schema.sql", "database\data.sql", "database\coimbatore-data.sql")) {
+foreach ($file in @("database\schema.sql", "database\auth-migration.sql", "database\data.sql", "database\coimbatore-data.sql")) {
     Get-Content $file -Raw | & $mysql -u root --port=3306
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to load $file (mysql exit code $LASTEXITCODE)."

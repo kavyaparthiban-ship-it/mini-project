@@ -6,11 +6,14 @@ This module contains the HTML, CSS and JavaScript for the CrowdSense user interf
 **Member 1 — Frontend and User Interface**
 
 ## Files
-- `index.html` — Home page with project overview, demo scenario and quick search
-- `dashboard.html` — Passenger dashboard with search, recommendations, comparison, route diagram and rewards
+- `index.html` — Welcome page and entry point
+- `auth.html` — Sign-in and account registration page
+- `dashboard.html` — Signed-in passenger dashboard with search, recommendations, comparison, route diagram and rewards
 - `css/style.css` — Responsive, accessible styles
 - `js/api.js` — API client that calls the real backend endpoints
-- `js/app.js` — Home page interactions
+- `js/auth-session.js` — Browser session profile and dashboard access gate
+- `js/auth.js` — Sign-in and registration interactions
+- `js/app.js` — Welcome page interactions
 - `js/dashboard.js` — Dashboard logic (search, ranking display, confirmation, rewards)
 
 ## Running locally
@@ -27,6 +30,8 @@ Then open `http://localhost:5500` (or the origin configured in `backend/src/main
 ## API connectivity
 All UI actions call the backend:
 - `GET /api/health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
 - `GET /api/routes`
 - `POST /api/recommendations`
 - `POST /api/passengers/{id}/journeys/confirm`

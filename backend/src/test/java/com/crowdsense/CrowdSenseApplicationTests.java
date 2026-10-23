@@ -1,6 +1,8 @@
 package com.crowdsense;
 
 import com.crowdsense.entity.BusEntity;
+import com.crowdsense.entity.PassengerCredentialEntity;
+import com.crowdsense.repository.PassengerCredentialRepository;
 import com.crowdsense.repository.BusRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,9 @@ class CrowdSenseApplicationTests {
     private BusRepository busRepository;
 
     @Autowired
+    private PassengerCredentialRepository passengerCredentialRepository;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
@@ -64,6 +69,61 @@ class CrowdSenseApplicationTests {
                         .header("Origin", "http://localhost:9999")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void registersAccountStoresPasswordHashAndAllowsLaterLogin() throws Exception {
+        String response = mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content("""
+                                {"name":"Maya User","email":"Maya.User@example.com","password":"coimbatore123"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Maya User"))
+                .andExpect(jsonPath("$.email").value("maya.user@example.com"))
+                .andExpect(jsonPath("$.passengerId").isNumber())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        int passengerIdValue = com.jayway.jsonpath.JsonPath.read(response, "$.passengerId");
+        long passengerId = passengerIdValue;
+        PassengerCredentialEntity credential = passengerCredentialRepository.findById(passengerId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertNotEquals("coimbatore123", credential.getPasswordHash());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content("""
+                                {"email":"MAYA.USER@example.com","password":"coimbatore123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passengerId").value(passengerId))
+                .andExpect(jsonPath("$.name").value("Maya User"));
+    }
+
+    @Test
+    void rejectsDuplicateRegistrationAndIncorrectLogin() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content("""
+                                {"name":"Maya User","email":"maya.duplicate@example.com","password":"coimbatore123"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content("""
+                                {"name":"Another User","email":"MAYA.DUPLICATE@example.com","password":"different123"}
+                                """))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content("""
+                                {"email":"maya.duplicate@example.com","password":"wrongpassword"}
+                                """))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

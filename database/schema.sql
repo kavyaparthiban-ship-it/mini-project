@@ -98,7 +98,18 @@ CREATE TABLE passenger (
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------------------------------
--- 6. passenger_preference : Weight the passenger assigns to each factor.
+-- 6. passenger_credential : Salted password hashes for registered accounts.
+-- -----------------------------------------------------------------------------
+CREATE TABLE passenger_credential (
+    passenger_id BIGINT NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    PRIMARY KEY (passenger_id),
+    CONSTRAINT fk_credential_passenger FOREIGN KEY (passenger_id)
+        REFERENCES passenger (passenger_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- -----------------------------------------------------------------------------
+-- 7. passenger_preference : Weight the passenger assigns to each factor.
 --    All weights are stored as non-negative integers 0..9 for easy explanation.
 -- -----------------------------------------------------------------------------
 CREATE TABLE passenger_preference (
@@ -116,7 +127,7 @@ CREATE TABLE passenger_preference (
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------------------------------
--- 7. occupancy_record : Simulated crowd observation for a bus at a stop.
+-- 8. occupancy_record : Simulated crowd observation for a bus at a stop.
 --    recorded_at uses a fixed simulated tick so the demo is reproducible.
 -- -----------------------------------------------------------------------------
 CREATE TABLE occupancy_record (
@@ -138,7 +149,7 @@ CREATE TABLE occupancy_record (
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------------------------------
--- 8. reward_transaction : Audit trail of every reward awarded or redeemed.
+-- 9. reward_transaction : Audit trail of every reward awarded or redeemed.
 --    journey_key is unique per journey -> prevents duplicate rewards.
 -- -----------------------------------------------------------------------------
 CREATE TABLE reward_transaction (
@@ -157,7 +168,7 @@ CREATE TABLE reward_transaction (
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------------------------------
--- 9. confirm_journey : Records a passenger confirmed (simulated) journey.
+-- 10. confirm_journey : Records a passenger confirmed (simulated) journey.
 --    Keeping this separate from reward_transaction allows a journey to be
 --    recorded even when it does not qualify for a reward.
 -- -----------------------------------------------------------------------------

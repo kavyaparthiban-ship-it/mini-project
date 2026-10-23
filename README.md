@@ -53,6 +53,11 @@ Get-Content database\schema.sql -Raw | & $mysql -u root --port=3306
 Get-Content database\data.sql   -Raw | & $mysql -u root --port=3306
 Get-Content database\coimbatore-data.sql -Raw | & $mysql -u root --port=3306
 ```
+For an existing database that should keep its current data, apply only the
+additive account-table migration:
+```powershell
+Get-Content database\auth-migration.sql -Raw | & $mysql -u root --port=3306
+```
 
 ### 3) Configure backend
 The backend does not load `.env` files automatically. Set `DB_URL`,
@@ -74,7 +79,9 @@ Backend: `http://localhost:8080`. Health: `GET /api/health`
 cd frontend
 python -m http.server 5500
 ```
-Open `http://localhost:5500` or `http://127.0.0.1:5500`.
+Open `http://localhost:5500`. Create an account or sign in before opening the
+recommendation dashboard. The sign-in and registration records are stored in
+MySQL, and passwords are stored as salted PBKDF2 hashes.
 
 ### 6) Demo scenario
 Search: **Source** `Central Bus Terminal` → **Destination** `Tech Park Gate`
@@ -95,6 +102,8 @@ not verified operator schedules or live tracking.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Create a passenger account |
+| POST | `/api/auth/login` | Sign in to an existing passenger account |
 | GET | `/api/buses` | All buses with occupancy |
 | GET | `/api/routes` | Routes with stops |
 | GET | `/api/buses/search?source=...&destination=...` | Buses serving pair |

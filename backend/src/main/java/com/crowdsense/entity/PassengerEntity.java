@@ -39,6 +39,12 @@ public class PassengerEntity {
     protected PassengerEntity() {
     }
 
+    public PassengerEntity(String passengerName, String email) {
+        this.passengerName = passengerName;
+        this.email = email;
+        this.rewardBalance = 0;
+    }
+
     public Long getPassengerId() {
         return passengerId;
     }

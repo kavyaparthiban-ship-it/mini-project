@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Start the CrowdSense backend and frontend on Windows."""
 
+import http.client
 import os
 import shutil
 import subprocess
@@ -30,7 +31,7 @@ def wait_for_url(url, process, timeout, service_name):
             with urllib.request.urlopen(url, timeout=2) as response:
                 if response.status == 200:
                     return
-        except (urllib.error.URLError, TimeoutError):
+        except (http.client.HTTPException, urllib.error.URLError, TimeoutError):
             pass
         time.sleep(1)
 
@@ -95,8 +96,8 @@ def main():
         else:
             print("CrowdSense frontend is already running.", flush=True)
 
-        print("CrowdSense is ready. Opening the dashboard.", flush=True)
-        webbrowser.open(f"{FRONTEND_URL}/dashboard.html")
+        print("CrowdSense is ready. Opening the welcome page.", flush=True)
+        webbrowser.open(f"{FRONTEND_URL}/")
         print("Keep the server windows open while using CrowdSense.", flush=True)
         while True:
             if frontend_process is not None and frontend_process.poll() is not None:
@@ -115,7 +116,7 @@ def url_is_available(url):
     try:
         with urllib.request.urlopen(url, timeout=2) as response:
             return response.status == 200
-    except (urllib.error.URLError, TimeoutError):
+    except (http.client.HTTPException, urllib.error.URLError, TimeoutError):
         return False
 
 

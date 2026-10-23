@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
     <header class="site-header">
@@ -22,6 +22,8 @@
             <nav class="nav">
                 <a class="nav-link" href="index.html">Home</a>
                 <a class="nav-link active" href="dashboard.html">Passenger Dashboard</a>
+                <span id="user-greeting" class="dashboard-user"></span>
+                <button id="sign-out" class="nav-link sign-out-button" type="button">Sign out</button>
             </nav>
         </div>
     </header>
@@ -49,11 +51,7 @@
                     </label>
                     <label class="field">
                         <span>Passenger</span>
-                        <select id="passenger-select">
-                            <option value="1">Ananya Sharma (ananya.sharma@example.com)</option>
-                            <option value="2">Rahul Verma</option>
-                            <option value="3">Priya Nair</option>
-                        </select>
+                        <select id="passenger-select" aria-label="Signed-in passenger"></select>
                         <small class="muted">Used to load preferences and rewards.</small>
                     </label>
                     <div class="field-actions">
@@ -239,7 +237,8 @@
         </div>
     </footer>
 
-    <script src="js/api.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/api.js?v=2"></script>
+    <script src="js/auth-session.js?v=2"></script>
+    <script src="js/dashboard.js?v=2"></script>
 </body>
 </html>

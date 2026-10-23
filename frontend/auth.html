@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#09141a">
+    <title>Sign in | CrowdSense</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body class="welcome-page auth-page">
+    <header class="welcome-header container">
+        <a class="welcome-brand" href="index.html" aria-label="CrowdSense home">
+            <span class="welcome-brand-mark">C</span>
+            <span>Crowd<span class="brand-accent">Sense</span></span>
+        </a>
+        <a class="welcome-sign-in" href="index.html">&larr; Back to welcome</a>
+    </header>
+
+    <main class="auth-main container">
+        <section class="auth-card" aria-labelledby="auth-title">
+            <div class="auth-card-heading">
+                <span class="auth-mark">CS</span>
+                <p class="eyebrow"><span class="eyebrow-dot"></span> YOUR JOURNEY STARTS HERE</p>
+                <h1 id="auth-title">Welcome back</h1>
+                <p id="auth-subtitle">Sign in to continue to your travel recommendations.</p>
+            </div>
+
+            <div class="auth-tabs" role="tablist" aria-label="Account access">
+                <button id="login-tab" class="auth-tab active" type="button" role="tab" aria-selected="true">Sign in</button>
+                <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false">Create account</button>
+            </div>
+
+            <form id="auth-form" class="auth-form" novalidate>
+                <label id="name-field" class="field hidden">
+                    <span>Your name</span>
+                    <input id="auth-name" name="name" autocomplete="name" maxlength="120" placeholder="e.g. Ananya Sharma">
+                </label>
+                <label class="field">
+                    <span>Email address</span>
+                    <input id="auth-email" name="email" type="email" autocomplete="email" maxlength="150" placeholder="you@example.com" required>
+                </label>
+                <label class="field">
+                    <span>Password</span>
+                    <input id="auth-password" name="password" type="password" autocomplete="current-password" maxlength="128" placeholder="At least 8 characters" required>
+                    <small id="password-hint" class="auth-hint hidden">Use at least 8 characters.</small>
+                </label>
+                <p id="auth-message" class="alert hidden" role="alert" aria-live="polite"></p>
+                <button id="auth-submit" class="btn welcome-continue auth-submit" type="submit">
+                    <span>Sign in</span><span aria-hidden="true">&rarr;</span>
+                </button>
+            </form>
+
+            <p class="auth-security-note"><span aria-hidden="true">⌑</span> Your password is stored as a secure hash.</p>
+        </section>
+        <p class="auth-footnote">CrowdSense route and crowd details are simulated demonstration data.</p>
+    </main>
+
+    <script src="js/api.js?v=2"></script>
+    <script src="js/auth-session.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+</body>
+</html>

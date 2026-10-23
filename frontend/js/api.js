@@ -57,6 +57,20 @@ class ApiClient {
         return this.request('/api/health');
     }
 
+    register({ name, email, password }) {
+        return this.request('/api/auth/register', {
+            method: 'POST',
+            body: { name, email, password }
+        });
+    }
+
+    login({ email, password }) {
+        return this.request('/api/auth/login', {
+            method: 'POST',
+            body: { email, password }
+        });
+    }
+
     getBuses() {
         return this.request('/api/buses');
     }
