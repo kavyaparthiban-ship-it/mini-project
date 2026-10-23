@@ -111,7 +111,8 @@ public class RecommendationEngineService {
                     s.waitScore(),
                     s.travelScore(),
                     s.walkScore(),
-                    s.reasons()
+                    s.reasons(),
+                    c.itinerary()
             ));
         }
         return result;
@@ -160,6 +161,14 @@ public class RecommendationEngineService {
         } else if (c.walkDistanceKm() <= 0.8) {
             reasons.add("Walkable distance to alternative stop.");
         }
+        if (c.itinerary().size() > 1) {
+            String transferStops = c.itinerary().subList(0, c.itinerary().size() - 1).stream()
+                    .map(RecommendationLeg::toStopName)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            int transferCount = c.itinerary().size() - 1;
+            reasons.add("Requires " + transferCount + (transferCount == 1 ? " transfer at " : " transfers at ")
+                    + transferStops + ".");
+        }
         if (reasons.isEmpty()) {
             reasons.add("Ranked by overall preference-weighted score.");
         }
@@ -176,8 +185,25 @@ public class RecommendationEngineService {
             double walkDistanceKm,
             int estimatedWaitMinutes,
             int estimatedTravelMinutes,
-            double tripDistanceKm
+            double tripDistanceKm,
+            List<RecommendationLeg> itinerary
     ) {
+        public Candidate(TransportVehicle vehicle,
+                         Occupancy occupancy,
+                         Long boardStopId,
+                         String boardStopName,
+                         Long destinationStopId,
+                         double walkDistanceKm,
+                         int estimatedWaitMinutes,
+                         int estimatedTravelMinutes,
+                         double tripDistanceKm) {
+            this(vehicle, occupancy, boardStopId, boardStopName, destinationStopId,
+                    walkDistanceKm, estimatedWaitMinutes, estimatedTravelMinutes, tripDistanceKm, List.of());
+        }
+
+        public Candidate {
+            itinerary = List.copyOf(itinerary);
+        }
     }
 
     private record Scored(

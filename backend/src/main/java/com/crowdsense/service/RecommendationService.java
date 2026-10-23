@@ -118,60 +118,52 @@ public class RecommendationService {
             feasible = findFeasibleByScan(sourceStop.getStopId(), destStop.getStopId());
         }
 
-        if (feasible.isEmpty()) {
-            throw new ResourceNotFoundException("No bus serves " + sourceName + " to " + destinationName + " in the simulated data");
-        }
-
-        // Also consider alternatives from other routes that stop near the source and serve destination
-        // (mimics the "find suitable alternative" requirement)
-        Set<Long> seenBusIds = new HashSet<>();
-        List<BusEntity> allCandidates = new ArrayList<>();
-        for (BusEntity b : feasible) {
-            if (seenBusIds.add(b.getBusId())) {
-                allCandidates.add(b);
-            }
-        }
-        List<BusEntity> others = findAlternativesFromNearby(sourceStop.getStopId(), destStop.getStopId(), seenBusIds);
-        allCandidates.addAll(others);
-
-        List<RecommendationEngineService.Candidate> candidates = new ArrayList<>();
         int headway = properties.getWaiting().getAvgHeadwayMinutes();
         double speed = properties.getTravel().getAvgSpeedKmph();
+        List<RecommendationEngineService.Candidate> candidates = new ArrayList<>();
 
-        for (BusEntity busEntity : allCandidates) {
-            RouteEntity routeEntity = busEntity.getRoute();
-            Route routeModel = buildRouteModel(routeEntity);
-            double tripDist = routeModel.distanceBetween(sourceStop.getStopId(), destStop.getStopId());
-            if (tripDist < 0) {
-                // This bus does not serve both stops.
-                continue;
+        if (feasible.isEmpty()) {
+            candidates.addAll(findTransferCandidates(sourceStop, destStop, headway, speed));
+            if (candidates.isEmpty()) {
+                throw new ResourceNotFoundException("No direct route or one-transfer journey serves "
+                        + sourceName + " to " + destinationName + " in the simulated data");
             }
-            // Walk distance to board stop: if the bus is currently reported at a nearby stop,
-            // approximate; otherwise use a small configurable distance
-            double walkDist = estimateWalkDistance(busEntity, sourceStop);
-            int waitMins = estimateWaitMinutes(busEntity, sourceStop, headway);
-            int travelMins = (int) Math.max(2, Math.round((tripDist / Math.max(speed, 1.0)) * 60.0));
-            OccupancyEntity latest = occupancyRepository.findLatestByBus(busEntity.getBusId()).orElse(null);
-            Occupancy occ = crowdService.classify(latest);
-            TransportVehicle vehicle;
-            if (busEntity.getRoute() != null && "METRO".equalsIgnoreCase(busEntity.getRoute().getTransportMode())) {
-                vehicle = new Metro(busEntity.getBusId(), busEntity.getBusNumber(), busEntity.getCapacity(),
-                        busEntity.getRoute().getRouteCode(), busEntity.getRoute().getRouteName());
-            } else {
-                vehicle = new Bus(busEntity.getBusId(), busEntity.getBusNumber(), busEntity.getCapacity(),
-                        busEntity.getRoute().getRouteCode(), busEntity.getRoute().getRouteName());
+        } else {
+            // Also consider alternatives from other routes that stop near the source and serve destination.
+            Set<Long> seenBusIds = new HashSet<>();
+            List<BusEntity> allCandidates = new ArrayList<>();
+            for (BusEntity bus : feasible) {
+                if (seenBusIds.add(bus.getBusId())) {
+                    allCandidates.add(bus);
+                }
             }
-            candidates.add(new RecommendationEngineService.Candidate(
-                    vehicle,
-                    occ,
-                    sourceStop.getStopId(),
-                    sourceStop.getStopName(),
-                    destStop.getStopId(),
-                    walkDist,
-                    waitMins,
-                    travelMins,
-                    tripDist
-            ));
+            allCandidates.addAll(findAlternativesFromNearby(sourceStop.getStopId(), destStop.getStopId(), seenBusIds));
+
+            for (BusEntity busEntity : allCandidates) {
+                Route routeModel = buildRouteModel(busEntity.getRoute());
+                double tripDist = routeModel.distanceBetween(sourceStop.getStopId(), destStop.getStopId());
+                if (tripDist < 0) {
+                    continue;
+                }
+                double walkDist = estimateWalkDistance(busEntity, sourceStop);
+                int waitMins = estimateWaitMinutes(busEntity, sourceStop, headway);
+                int travelMins = (int) Math.max(2, Math.round((tripDist / Math.max(speed, 1.0)) * 60.0));
+                Occupancy occ = crowdService.classify(
+                        occupancyRepository.findLatestByBus(busEntity.getBusId()).orElse(null));
+                TransportVehicle vehicle = toVehicle(busEntity);
+                candidates.add(new RecommendationEngineService.Candidate(
+                        vehicle,
+                        occ,
+                        sourceStop.getStopId(),
+                        sourceStop.getStopName(),
+                        destStop.getStopId(),
+                        walkDist,
+                        waitMins,
+                        travelMins,
+                        tripDist,
+                        List.of(toRecommendationLeg(busEntity, sourceStop, destStop, waitMins, travelMins, occ))
+                ));
+            }
         }
 
         if (candidates.isEmpty()) {
@@ -185,6 +177,10 @@ public class RecommendationService {
 
         Recommendation recommended = ranked.stream().filter(Recommendation::isRecommended).findFirst().orElse(ranked.get(0));
         String explanation = buildExplanation(recommended);
+        String demoNote = recommended.getItinerary().size() > 1
+                || recommended.getBus().getRouteCode().startsWith("CBE-")
+                ? "Coimbatore routes, occupancy, and times are simulated demonstration data, not verified operator schedules or live tracking."
+                : "DEMO NOTE: Bus 101 is ~94% crowded; Bus 102 is ~42% crowded and is the recommended alternative in the sample scenario. Values come from simulated occupancy data and the configured scoring formula.";
 
         return new com.crowdsense.dto.RecommendationResponse(
                 sourceName,
@@ -194,7 +190,7 @@ public class RecommendationService {
                 items,
                 toItemDto(recommended),
                 explanation,
-                "DEMO NOTE: Bus 101 is ~94% crowded; Bus 102 is ~42% crowded and is the recommended alternative in the sample scenario. Values come from simulated occupancy data and the configured scoring formula.",
+                demoNote,
                 new com.crowdsense.dto.RecommendationResponse.ScoringInfo(
                         engineService.getWeightCrowd(),
                         engineService.getWeightWait(),
@@ -206,14 +202,236 @@ public class RecommendationService {
         );
     }
 
+    private List<RecommendationEngineService.Candidate> findTransferCandidates(StopEntity source,
+                                                                                StopEntity destination,
+                                                                                int headway,
+                                                                                double speed) {
+        List<BusEntity> buses = busRepository.findAll();
+        Map<Long, List<RouteStopEntity>> stopsByRoute = new HashMap<>();
+        Map<Long, List<BusEntity>> busesByRoute = new HashMap<>();
+        for (BusEntity bus : buses) {
+            RouteEntity route = bus.getRoute();
+            if (route != null) {
+                stopsByRoute.computeIfAbsent(route.getRouteId(),
+                        routeId -> routeStopRepository.findByRoute_RouteIdOrderByStopSequenceAsc(routeId));
+                busesByRoute.computeIfAbsent(route.getRouteId(), routeId -> new ArrayList<>()).add(bus);
+            }
+        }
+
+        List<RecommendationEngineService.Candidate> candidates = new ArrayList<>();
+        for (BusEntity firstBus : buses) {
+            RouteEntity route = firstBus.getRoute();
+            if (route == null || findRouteStop(stopsByRoute.get(route.getRouteId()), source.getStopId()) == null) {
+                continue;
+            }
+            List<BusEntity> path = new ArrayList<>(List.of(firstBus));
+            List<StopEntity> transfers = new ArrayList<>();
+            Set<Long> visitedRoutes = new HashSet<>(Set.of(route.getRouteId()));
+            Set<Long> visitedStops = new HashSet<>(Set.of(source.getStopId()));
+            extendTransferPath(firstBus, source, destination, headway, speed,
+                    stopsByRoute, busesByRoute, path, transfers, visitedRoutes, visitedStops, candidates);
+        }
+        return candidates;
+    }
+
+    private void extendTransferPath(BusEntity currentBus,
+                                   StopEntity source,
+                                   StopEntity destination,
+                                   int headway,
+                                   double speed,
+                                   Map<Long, List<RouteStopEntity>> stopsByRoute,
+                                   Map<Long, List<BusEntity>> busesByRoute,
+                                   List<BusEntity> path,
+                                   List<StopEntity> transfers,
+                                   Set<Long> visitedRoutes,
+                                   Set<Long> visitedStops,
+                                   List<RecommendationEngineService.Candidate> candidates) {
+        List<RouteStopEntity> currentStops = stopsByRoute.get(currentBus.getRoute().getRouteId());
+        RouteStopEntity destinationOnRoute = findRouteStop(currentStops, destination.getStopId());
+        if (destinationOnRoute != null) {
+            if (path.size() > 1) {
+                addTransferCandidate(path, transfers, source, destination, headway, speed,
+                        stopsByRoute, candidates);
+            }
+            return;
+        }
+
+        if (path.size() >= 4) {
+            return;
+        }
+
+        for (RouteStopEntity routeStop : currentStops) {
+            StopEntity transfer = routeStop.getStop();
+            if (visitedStops.contains(transfer.getStopId())) {
+                continue;
+            }
+            for (BusEntity nextBus : busesByRoute.values().stream()
+                    .flatMap(List::stream)
+                    .filter(bus -> findRouteStop(stopsByRoute.get(bus.getRoute().getRouteId()),
+                            transfer.getStopId()) != null)
+                    .toList()) {
+                Long nextRouteId = nextBus.getRoute().getRouteId();
+                if (visitedRoutes.contains(nextRouteId)) {
+                    continue;
+                }
+
+                visitedRoutes.add(nextRouteId);
+                visitedStops.add(transfer.getStopId());
+                path.add(nextBus);
+                transfers.add(transfer);
+                extendTransferPath(nextBus, source, destination, headway, speed,
+                        stopsByRoute, busesByRoute, path, transfers, visitedRoutes, visitedStops, candidates);
+                transfers.remove(transfers.size() - 1);
+                path.remove(path.size() - 1);
+                visitedStops.remove(transfer.getStopId());
+                visitedRoutes.remove(nextRouteId);
+            }
+        }
+    }
+
+    private void addTransferCandidate(List<BusEntity> path,
+                                      List<StopEntity> transfers,
+                                      StopEntity source,
+                                      StopEntity destination,
+                                      int headway,
+                                      double speed,
+                                      Map<Long, List<RouteStopEntity>> stopsByRoute,
+                                      List<RecommendationEngineService.Candidate> candidates) {
+        List<RecommendationLeg> itinerary = new ArrayList<>();
+        double totalDistance = 0.0;
+        int totalWait = 0;
+        int totalTravel = 0;
+        int totalCapacity = 0;
+        double occupancyTotal = 0.0;
+        boolean occupancyMissing = false;
+        boolean occupancyStale = false;
+
+        for (int index = 0; index < path.size(); index++) {
+            BusEntity bus = path.get(index);
+            StopEntity from = index == 0 ? source : transfers.get(index - 1);
+            StopEntity to = index < transfers.size() ? transfers.get(index) : destination;
+            List<RouteStopEntity> routeStops = stopsByRoute.get(bus.getRoute().getRouteId());
+            RouteStopEntity fromOnRoute = findRouteStop(routeStops, from.getStopId());
+            RouteStopEntity toOnRoute = findRouteStop(routeStops, to.getStopId());
+            double legDistance = Math.abs(toOnRoute.getDistanceFromStart() - fromOnRoute.getDistanceFromStart());
+            int legTravel = estimateTravelMinutes(legDistance, speed);
+            int legWait = index == 0 ? estimateWaitMinutes(bus, from, headway) : Math.max(2, headway / 2);
+            Occupancy occupancy = crowdService.classify(
+                    occupancyRepository.findLatestByBus(bus.getBusId()).orElse(null));
+
+            itinerary.add(toRecommendationLeg(bus, from, to, legWait, legTravel, occupancy));
+            totalDistance += legDistance;
+            totalWait += legWait;
+            totalTravel += legTravel;
+            totalCapacity += bus.getCapacity();
+            if (occupancy.isMissing()) {
+                occupancyMissing = true;
+            } else {
+                occupancyTotal += occupancy.getOccupancyPercent();
+                occupancyStale |= occupancy.isStale();
+            }
+        }
+
+        Occupancy journeyOccupancy = occupancyMissing
+                ? Occupancy.fromPercent(null, totalCapacity, true)
+                : Occupancy.fromPercent(occupancyTotal / path.size(), totalCapacity, occupancyStale);
+        String routeCodes = path.stream().map(bus -> bus.getRoute().getRouteCode())
+                .collect(java.util.stream.Collectors.joining(" + "));
+        String routeNames = path.stream().map(bus -> bus.getRoute().getRouteName())
+                .collect(java.util.stream.Collectors.joining(" → "));
+        String busNumbers = path.stream().map(BusEntity::getBusNumber)
+                .collect(java.util.stream.Collectors.joining(" + "));
+        Bus combinedVehicle = new Bus(path.get(0).getBusId(), busNumbers, totalCapacity, routeCodes, routeNames);
+
+        candidates.add(new RecommendationEngineService.Candidate(
+                combinedVehicle,
+                journeyOccupancy,
+                source.getStopId(),
+                source.getStopName(),
+                destination.getStopId(),
+                estimateWalkDistance(path.get(0), source),
+                totalWait,
+                totalTravel,
+                totalDistance,
+                itinerary
+        ));
+    }
+
+    private RouteStopEntity findRouteStop(List<RouteStopEntity> stops, Long stopId) {
+        return stops.stream()
+                .filter(routeStop -> routeStop.getStop().getStopId().equals(stopId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private int estimateTravelMinutes(double distanceKm, double speedKmph) {
+        return (int) Math.max(2, Math.round((distanceKm / Math.max(speedKmph, 1.0)) * 60.0));
+    }
+
+    private TransportVehicle toVehicle(BusEntity bus) {
+        if ("METRO".equalsIgnoreCase(bus.getRoute().getTransportMode())) {
+            return new Metro(bus.getBusId(), bus.getBusNumber(), bus.getCapacity(),
+                    bus.getRoute().getRouteCode(), bus.getRoute().getRouteName());
+        }
+        return new Bus(bus.getBusId(), bus.getBusNumber(), bus.getCapacity(),
+                bus.getRoute().getRouteCode(), bus.getRoute().getRouteName());
+    }
+
+    private RecommendationLeg toRecommendationLeg(BusEntity bus,
+                                                   StopEntity from,
+                                                   StopEntity to,
+                                                   int waitMinutes,
+                                                   int travelMinutes,
+                                                   Occupancy occupancy) {
+        return new RecommendationLeg(
+                bus.getBusId(),
+                bus.getBusNumber(),
+                bus.getRoute().getRouteCode(),
+                bus.getRoute().getRouteName(),
+                bus.getRoute().getTransportMode(),
+                from.getStopId(),
+                from.getStopName(),
+                to.getStopId(),
+                to.getStopName(),
+                waitMinutes,
+                travelMinutes,
+                occupancy.getOccupancyPercent(),
+                occupancy.getCrowdCategory().getLabel(),
+                occupancy.isStale(),
+                occupancy.isMissing()
+        );
+    }
+
     private Optional<StopEntity> fuzzyFindStop(String name) {
         if (name == null) {
             return Optional.empty();
         }
-        String lower = name.toLowerCase();
-        return stopRepository.findAll().stream()
-                .filter(s -> s.getStopName() != null && s.getStopName().toLowerCase().contains(lower))
+        String query = normalizeStopName(name);
+        if (query.length() < 3) {
+            return Optional.empty();
+        }
+        List<StopEntity> stops = stopRepository.findAll();
+        Optional<StopEntity> normalizedExact = stops.stream()
+                .filter(stop -> normalizeStopName(stop.getStopName()).equals(query))
                 .findFirst();
+        if (normalizedExact.isPresent()) {
+            return normalizedExact;
+        }
+        return stops.stream()
+                .filter(stop -> normalizeStopName(stop.getStopName()).contains(query))
+                .min(Comparator
+                        .comparingInt((StopEntity stop) ->
+                                stop.getStopCode() != null && stop.getStopCode().startsWith("CBE-") ? 0 : 1)
+                        .thenComparingInt(stop -> normalizeStopName(stop.getStopName()).length()));
+    }
+
+    private String normalizeStopName(String name) {
+        return Arrays.stream(name.toLowerCase(Locale.ROOT)
+                        .replaceAll("[^\\p{L}\\p{N}]+", " ")
+                        .trim()
+                        .split("\\s+"))
+                .filter(token -> !Set.of("coimbatore", "area", "bus", "stand", "stop").contains(token))
+                .collect(java.util.stream.Collectors.joining());
     }
 
     private List<BusEntity> findFeasibleByScan(Long sourceId, Long destId) {
@@ -362,12 +580,19 @@ public class RecommendationService {
         Double occPct = r.getOccupancy() == null ? null : r.getOccupancy().getOccupancyPercent();
         boolean stale = r.getOccupancy() != null && r.getOccupancy().isStale();
         boolean missing = r.getOccupancy() == null || r.getOccupancy().isMissing();
+        String transportMode = r.getItinerary().stream()
+                .map(RecommendationLeg::transportMode)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(" + "));
+        if (transportMode.isBlank()) {
+            transportMode = r.getBus().getTransportMode();
+        }
         return new com.crowdsense.dto.RecommendationItemDto(
                 r.getBus().getId(),
                 r.getBus().getNumber(),
                 r.getBus().getRouteCode(),
                 r.getBus().getRouteName(),
-                r.getBus().getTransportMode(),
+                transportMode,
                 occPct,
                 r.getCrowdCategory() == null ? "Unknown" : r.getCrowdCategory().getLabel(),
                 stale,
@@ -384,7 +609,26 @@ public class RecommendationService {
                 round(r.getWaitScore()),
                 round(r.getTravelScore()),
                 round(r.getWalkScore()),
-                r.getReasons()
+                r.getReasons(),
+                r.getItinerary().stream()
+                        .map(leg -> new com.crowdsense.dto.RecommendationLegDto(
+                                leg.vehicleId(),
+                                leg.vehicleNumber(),
+                                leg.routeCode(),
+                                leg.routeName(),
+                                leg.transportMode(),
+                                leg.fromStopId(),
+                                leg.fromStopName(),
+                                leg.toStopId(),
+                                leg.toStopName(),
+                                leg.estimatedWaitMinutes(),
+                                leg.estimatedTravelMinutes(),
+                                leg.occupancyPercent(),
+                                leg.crowdCategory(),
+                                leg.occupancyStale(),
+                                leg.occupancyMissing()
+                        ))
+                        .toList()
         );
     }
 

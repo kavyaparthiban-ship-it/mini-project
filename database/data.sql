@@ -90,19 +90,19 @@ INSERT INTO passenger_preference
  (3, 8, 5, 7, 6, 1.20);
 
 -- ---------------------------------------------------------------------------
--- Occupancy records (simulated "current" tick = 2026-10-20 09:00:00).
+-- Occupancy records (simulated readings loaded as current demo data).
 -- Bus 101 on route 1 at City Hospital  -> 47/50 = 94.00 %  (Critical)
 -- Bus 102 on route 2 at Market Junction -> 21/50 = 42.00 %  (Moderate)
 -- ---------------------------------------------------------------------------
 INSERT INTO occupancy_record
  (bus_id, stop_id, occupancy_percent, passenger_count, recorded_at) VALUES
- (1, 3, 94.00, 47, '2026-10-20 09:00:00'),   -- Bus 101 : Critical
- (6, 2, 88.00, 44, '2026-10-20 09:00:00'),   -- Bus 106 : Critical
- (2, 2, 42.00, 21, '2026-10-20 09:00:00'),   -- Bus 102 : Moderate  (recommended)
- (3, 6, 30.00, 18, '2026-10-20 09:00:00'),   -- Bus 103 : Low
- (4, 10, 55.00, 25, '2026-10-20 09:00:00'),  -- Bus 104 : High
- (5, 1, 26.00, 13, '2026-10-20 09:00:00'),   -- Bus 105 : Low
- (7, 9, 68.00, 82, '2026-10-20 09:00:00');   -- Metro M201 : High
+ (1, 3, 94.00, 47, CURRENT_TIMESTAMP),   -- Bus 101 : Critical
+ (6, 2, 88.00, 44, CURRENT_TIMESTAMP),   -- Bus 106 : Critical
+ (2, 2, 42.00, 21, CURRENT_TIMESTAMP),   -- Bus 102 : Moderate  (recommended)
+ (3, 6, 30.00, 18, CURRENT_TIMESTAMP),   -- Bus 103 : Low
+ (4, 10, 55.00, 25, CURRENT_TIMESTAMP),  -- Bus 104 : High
+ (5, 1, 26.00, 13, CURRENT_TIMESTAMP),   -- Bus 105 : Low
+ (7, 9, 68.00, 82, CURRENT_TIMESTAMP);   -- Metro M201 : High
 
 -- ---------------------------------------------------------------------------
 -- Seed reward history for passenger 1 so the dashboard has data to show.

@@ -32,7 +32,7 @@ mini-project/
   OOPS MINI.pdf        # Project report (reference)
   frontend/            # Member 1 - UI (HTML/CSS/JS)
   backend/             # Member 2 - Java OOP + Spring Boot APIs
-  database/            # Member 3 - schema.sql, data.sql, queries.sql
+  database/            # Member 3 - schema.sql, data.sql, Coimbatore demo network, queries.sql
   crowd-analysis/      # Member 4 - crowd prediction & evaluation
   docs/                # Member 5 - UML, test plan, integration guide, etc.
   scripts/             # Helper scripts
@@ -51,11 +51,14 @@ mini-project/
 $mysql = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
 Get-Content database\schema.sql -Raw | & $mysql -u root --port=3306
 Get-Content database\data.sql   -Raw | & $mysql -u root --port=3306
+Get-Content database\coimbatore-data.sql -Raw | & $mysql -u root --port=3306
 ```
 
 ### 3) Configure backend
-Copy `.env.example` to `.env` or set environment variables. Default expects
-`root` with empty password and database `crowdsense`.
+The backend does not load `.env` files automatically. Set `DB_URL`,
+`DB_USERNAME`, and `DB_PASSWORD` in the shell that starts Maven, or add local
+overrides in `backend/src/main/resources/application-local.properties`.
+Defaults expect `root` with an empty password and database `crowdsense`.
 
 ### 4) Build and run backend
 ```powershell
@@ -78,6 +81,15 @@ Search: **Source** `Central Bus Terminal` → **Destination** `Tech Park Gate`
 - Bus **101**: ~94% (Critical)
 - Recommended **Bus 102**: ~42% (Moderate), est. wait ~6 min
 - Confirm journey to earn **5 virtual vouchers** (if improvement >= 15%)
+
+### Coimbatore area coverage
+The simulated network also includes major Coimbatore localities and nearby
+towns, including Gandhipuram, Ukkadam, RS Puram, Saibaba Colony, Peelamedu,
+Singanallur, the Airport, Vadavalli, Thudiyalur, Pollachi, Sulur, and
+Mettupalayam. Type a locality or choose one from the dashboard suggestions.
+Recommendations can use a direct route or up to three transfers at shared stops.
+Routes, distances, occupancy, and travel times are illustrative demo data,
+not verified operator schedules or live tracking.
 
 ## API Endpoints
 | Method | Endpoint | Purpose |

@@ -12,12 +12,16 @@
 - Environment variables set (or defaults used)
 
 ## Integration Steps
-1. Load DB (schema.sql + data.sql)
+1. Load DB (schema.sql + data.sql + coimbatore-data.sql)
 2. Start backend (`mvn spring-boot:run`)
 3. Verify `/api/health`
 4. Start frontend (static server)
 5. Run search in dashboard
 6. Confirm rewards flow
+
+The recommendation API can also return itineraries of up to four legs when no
+direct service exists. The dashboard displays each leg; journey confirmation and
+rewards remain limited to direct, single-vehicle trips.
 
 ## Common Issues
 - Port conflicts (8080/5500) - adjust via env/CORS

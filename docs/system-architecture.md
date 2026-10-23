@@ -26,11 +26,15 @@ CrowdSense follows a layered architecture suitable for a college OOPS mini-proje
 ## Data Flow (Recommendation)
 1. Passenger enters source/destination in UI
 2. Frontend calls `POST /api/recommendations`
-3. Backend resolves stops, finds feasible buses via route-stop graph
+3. Backend resolves stops, finds direct services or a one-transfer itinerary via the route-stop graph
 4. Latest occupancy fetched and classified (missing/stale handled)
 5. Recommendation engine scores and ranks alternatives (configurable weights)
 6. UI displays ranked list with explanation and route diagram
 7. Passenger confirms journey -> rewards checked, balance updated, duplicate prevented
+
+When no direct service exists, the recommender can join up to four services
+(three transfers) through shared stops. Each leg is returned in the recommendation
+itinerary so the frontend can show each transfer clearly.
 
 ## Design Notes
 - DTOs prevent entity leakage

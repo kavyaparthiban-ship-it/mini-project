@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardStopSelect = document.getElementById('board-stop');
     const journeyKeyInput = document.getElementById('journey-key');
     const confirmForm = document.getElementById('confirm-form');
+    const confirmSubmitButton = confirmForm ? confirmForm.querySelector('button[type="submit"]') : null;
     const confirmResultEl = document.getElementById('confirm-result');
 
     const rewardBalanceEl = document.getElementById('reward-balance');
@@ -213,6 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Recommended
         if (recommendedEl && resp.recommended) {
             const r = resp.recommended;
+            const itinerary = Array.isArray(r.itinerary) ? r.itinerary : [];
+            const itineraryMarkup = itinerary.length > 1
+                ? `<div class="recommended-reasons"><strong>Transfer itinerary</strong><ol>${itinerary.map(leg => `
+                    <li>${leg.transportMode} ${leg.vehicleNumber} (${leg.routeCode}): ${leg.fromStopName} → ${leg.toStopName};
+                        wait ${leg.estimatedWaitMinutes} min, travel ${leg.estimatedTravelMinutes} min${leg.occupancyPercent === null ? '' : `, ${formatPercent(leg.occupancyPercent)} occupancy`}</li>
+                `).join('')}</ol></div>`
+                : '';
             recommendedEl.innerHTML = `
                 <div class="recommended-grid">
                     <div class="recommended-item">
@@ -232,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Breakdown: Crowd ${formatNumber(r.crowdScore,2)} • Wait ${formatNumber(r.waitScore,2)} • Travel ${formatNumber(r.travelScore,2)} • Walk ${formatNumber(r.walkScore,2)}</p>
                     </div>
                 </div>
+                ${itineraryMarkup}
                 <ol class="recommended-reasons">
                     ${(r.reasons || []).map(x => `<li>${x}</li>`).join('')}
                 </ol>
@@ -291,10 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
             (resp.availableBuses || []).forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = item.busId;
-                opt.textContent = `${item.busNumber} — ${item.routeCode} (${item.crowdCategory}, ${formatPercent(item.occupancyPercent)})`;
+                const transfer = Array.isArray(item.itinerary) && item.itinerary.length > 1 ? ' (transfer itinerary)' : '';
+                opt.textContent = `${item.busNumber} — ${item.routeCode} (${item.crowdCategory}, ${formatPercent(item.occupancyPercent)})${transfer}`;
                 if (item.recommended) opt.selected = true;
                 selectedBusSelect.appendChild(opt);
             });
+            updateConfirmationAvailability();
         }
         // Board stop dropdown
         if (boardStopSelect) {
@@ -324,6 +335,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (routeDiagramEl && resp.availableBuses) {
             const rec = resp.recommended;
             if (rec) {
+                if (Array.isArray(rec.itinerary) && rec.itinerary.length > 1) {
+                    routeDiagramEl.innerHTML = '';
+                    rec.itinerary.forEach((leg, index) => {
+                        const legEl = document.createElement('div');
+                        legEl.className = 'route-stop';
+                        legEl.textContent = `${leg.transportMode} ${leg.vehicleNumber}: ${leg.fromStopName} → ${leg.toStopName}`;
+                        routeDiagramEl.appendChild(legEl);
+                        if (index < rec.itinerary.length - 1) {
+                            const transferEl = document.createElement('div');
+                            transferEl.className = 'route-line';
+                            routeDiagramEl.appendChild(transferEl);
+                        }
+                    });
+                    return;
+                }
                 // Render a simple diagram from stops on rec's route if available
                 api.getRoutes().then(routes => {
                     const route = (routes || []).find(r => r.routeCode === rec.routeCode);
@@ -354,6 +380,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateConfirmationAvailability() {
+        if (!confirmSubmitButton || !selectedBusSelect || !lastRecommendation) return;
+        const selected = (lastRecommendation.availableBuses || []).find(
+            item => String(item.busId) === selectedBusSelect.value
+        );
+        const isTransfer = selected && Array.isArray(selected.itinerary) && selected.itinerary.length > 1;
+        confirmSubmitButton.disabled = Boolean(isTransfer);
+        if (isTransfer) {
+            show(confirmResultEl, 'Transfer trips can be recommended, but journey confirmation and rewards currently support direct, single-vehicle trips only.');
+            if (confirmResultEl) confirmResultEl.className = 'alert alert-info';
+        } else {
+            hide(confirmResultEl);
+        }
+    }
+
     // Event delegation for select buttons
     if (allBusesBody) {
         allBusesBody.addEventListener('click', (e) => {
@@ -363,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const boardId = btn.getAttribute('data-board');
             if (selectedBusSelect && busId) {
                 selectedBusSelect.value = busId;
+                updateConfirmationAvailability();
             }
             if (boardStopSelect && boardId) {
                 boardStopSelect.value = boardId;
@@ -371,6 +413,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
+    }
+
+    if (selectedBusSelect) {
+        selectedBusSelect.addEventListener('change', updateConfirmationAvailability);
     }
 
     if (searchForm) {
@@ -408,6 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const destination = destInput ? destInput.value.trim() : (lastRecommendation.destination || '');
             const passengerIdVal = passengerSelect ? parseInt(passengerSelect.value) : null;
             const selectedBusIdVal = selectedBusSelect ? parseInt(selectedBusSelect.value) : null;
+            const selectedOption = (lastRecommendation.availableBuses || []).find(
+                item => String(item.busId) === String(selectedBusIdVal)
+            );
+            if (selectedOption && Array.isArray(selectedOption.itinerary) && selectedOption.itinerary.length > 1) {
+                show(confirmResultEl, 'Transfer trips cannot be confirmed for rewards yet.');
+                confirmResultEl.className = 'alert alert-info';
+                return;
+            }
             const boardStopIdVal = boardStopSelect && boardStopSelect.value ? parseInt(boardStopSelect.value) : null;
             const journeyKey = journeyKeyInput ? journeyKeyInput.value.trim() : '';
             if (!source || !destination || Number.isNaN(passengerIdVal) || Number.isNaN(selectedBusIdVal) || !journeyKey) {

@@ -24,6 +24,7 @@ public record RecommendationItemDto(
         Double waitScore,
         Double travelScore,
         Double walkScore,
-        List<String> reasons
+        List<String> reasons,
+        List<RecommendationLegDto> itinerary
 ) {
 }

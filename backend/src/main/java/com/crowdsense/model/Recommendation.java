@@ -28,6 +28,7 @@ public class Recommendation {
     private final double travelScore;
     private final double walkScore;
     private final List<String> reasons;
+    private final List<RecommendationLeg> itinerary;
 
     public Recommendation(Bus bus,
                           Occupancy occupancy,
@@ -44,7 +45,8 @@ public class Recommendation {
                           double waitScore,
                           double travelScore,
                           double walkScore,
-                          List<String> reasons) {
+                          List<String> reasons,
+                          List<RecommendationLeg> itinerary) {
         this.bus = bus;
         this.occupancy = occupancy;
         this.crowdCategory = crowdCategory;
@@ -61,6 +63,7 @@ public class Recommendation {
         this.travelScore = travelScore;
         this.walkScore = walkScore;
         this.reasons = List.copyOf(reasons);
+        this.itinerary = List.copyOf(itinerary);
     }
 
     public Bus getBus() {
@@ -126,6 +129,10 @@ public class Recommendation {
 
     public List<String> getReasons() {
         return Collections.unmodifiableList(reasons);
+    }
+
+    public List<RecommendationLeg> getItinerary() {
+        return itinerary;
     }
 
     @Override
